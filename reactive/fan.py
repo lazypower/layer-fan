@@ -17,10 +17,10 @@ def install_fan_modules():
 @when('fan.installed')
 def configure_fan_overlay():
     cfg = config()
-    if cfg.changed('overlay_network') or cfg.changed('underlay_network'):
+    if cfg.changed('overlay') or cfg.changed('underlay'):
         # caveate - this breaks if you juju unset the values
-        cmd = "fanatic configure {0} {1}".format(config('overlay_network'),
-                                                 config('underlay_network'))
+        cmd = "fanatic configure {0} {1}".format(config('overlay'),
+                                                 config('underlay'))
         check_call(split(cmd))
 
     status_set('active', 'Configured fan networking with: {}'.format(cmd))
