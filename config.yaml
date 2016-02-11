@@ -1,0 +1,9 @@
+options:
+  overlay:
+    type: string
+    default: 10.0.0.0/24
+    description:
+  underlay:
+    type: string
+    default: 255.0.0.0
+    description:
