@@ -1,9 +1,9 @@
 options:
   overlay:
     type: string
-    default: 10.0.0.0/24
-    description:
+    default: 250.0.0.0/8
+    description: The overlay network cidr.
   underlay:
     type: string
-    default: 255.0.0.0
-    description:
+    default: 10.0.0.0/16
+    description: the underlay network cidr.
