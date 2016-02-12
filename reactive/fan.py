@@ -8,28 +8,39 @@ from subprocess import check_call
 
 @when_not('fan.installed')
 def install_fan_modules():
-    ''' Installs the fan networking modules from ARCHIVE '''
+    '''Installs the fan networking modules from the archive.'''
     pkgs = ['ubuntu-fan']
     apt_install(pkgs, fatal=True)
     set_state('fan.installed')
 
+
 @when('fan.installed')
-def configure_fan_overlay():
+def configure_fan():
     '''Configure the fan settings when the values change.'''
-    cfg = config()
-    if cfg.changed('overlay') or cfg.changed('underlay'):
-        overlay = config('overlay')
-        underlay = config('underlay')
-        # When the values are not empty strings.
-        if overlay and underlay:
-            # fanatic configure and deconfgiure are meant to be interactive.
-            # Call fanatic enable-fan or enable-docker to run non-interactively.
-            cmd = "fanatic enable-docker {0} {1}".format(overlay, underlay)
-        else:
-            cmd = "fanctl down -e"
+    options = config()
+    if options.changed('overlay') or options.changed('underlay'):
+        # Load all the options for the fan layer.
+        layer_options = layer.options('fan')
+        fan_type = layer_options['fan-type']:
+        if fan_type in ['lxd', 'docker']:
+            enable_fan(fan_type, options)
+            status_set('active', '{0} fan network configured'.format(fan_type))
+            set_state('fan.configured')
+
+
+def enable_fan(fan_type, options):
+    '''Configure the fan by type and with the current configuration options
+    removing the old configuration if it exists.'''
+    previous_overlay = options.previous('overlay')
+    previous_underlay = options.previous('underlay')
+    if previous_overlay and previous_underlay:
+        cmd = 'fanatic disable-{0} {1} {2}'.format(fan_type, previous_overlay,
+                                                   previous_underlay)
         print(cmd)
         check_call(split(cmd))
-
-        status_set('active', 'Fan network configured to: {}'.format(cmd))
-    set_state('fan.configured')
-    # do something with fan.configured state later.
+    overlay = options('overlay')
+    underlay = options('underlay')
+    if overlay and undelay:
+        cmd = 'fanatic enable-{0} {1} {2}'.format(fan_type, overlay, underlay)
+        print(cmd)
+        check_call(split(cmd))

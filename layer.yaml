@@ -1,2 +1,10 @@
 includes:
   - layer:basic
+defines:
+  fan-type:
+    description: |
+      The type of network for fan to configure. Valid values are 'lxd', or
+      'docker'. Where the layer will configure the bridge for those container
+      technologies.
+    type: string
+    default: lxd
