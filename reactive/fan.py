@@ -1,3 +1,4 @@
+from charms import layer
 from charms.reactive import when, when_not, set_state
 from charmhelpers.core.hookenv import status_set, config
 from charmhelpers.fetch import apt_install
@@ -21,7 +22,7 @@ def configure_fan():
     if options.changed('overlay') or options.changed('underlay'):
         # Load all the options for the fan layer.
         layer_options = layer.options('fan')
-        fan_type = layer_options['fan-type']:
+        fan_type = layer_options['fan-type']
         if fan_type in ['lxd', 'docker']:
             enable_fan(fan_type, options)
             status_set('active', '{0} fan network configured'.format(fan_type))
@@ -40,7 +41,7 @@ def enable_fan(fan_type, options):
         check_call(split(cmd))
     overlay = options('overlay')
     underlay = options('underlay')
-    if overlay and undelay:
+    if overlay and underlay:
         cmd = 'fanatic enable-{0} {1} {2}'.format(fan_type, overlay, underlay)
         print(cmd)
         check_call(split(cmd))
