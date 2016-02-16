@@ -1,5 +1,6 @@
-from charms.reactive import when, when_not, set_state
-from charmhelpers.core.hookenv import status_set, config
+from charms import layer
+from charms.reactive import when, when_not, remove_state, set_state
+from charmhelpers.core.hookenv import config, status_set
 from charmhelpers.fetch import apt_install
 
 from shlex import split
@@ -8,28 +9,49 @@ from subprocess import check_call
 
 @when_not('fan.installed')
 def install_fan_modules():
-    ''' Installs the fan networking modules from ARCHIVE '''
+    '''Installs the fan networking modules from the archive.'''
     pkgs = ['ubuntu-fan']
     apt_install(pkgs, fatal=True)
     set_state('fan.installed')
 
-@when('fan.installed')
-def configure_fan_overlay():
-    '''Configure the fan settings when the values change.'''
-    cfg = config()
-    if cfg.changed('overlay') or cfg.changed('underlay'):
-        overlay = config('overlay')
-        underlay = config('underlay')
-        # When the values are not empty strings.
-        if overlay and underlay:
-            # fanatic configure and deconfgiure are meant to be interactive.
-            # Call fanatic enable-fan or enable-docker to run non-interactively.
-            cmd = "fanatic enable-docker {0} {1}".format(overlay, underlay)
-        else:
-            cmd = "fanctl down -e"
+
+@when('fan.installed', 'docker.installed')
+@when_not('fan.configured')
+def configure_docker():
+    '''Configure docker for fan.'''
+    enable_fan('docker', config())
+    set_state('fan.configured')
+
+
+@when('fan.installed', 'lxd.installed')
+@when_not('fan.configured')
+def configure_lxd():
+    '''Configure lxd for fan.'''
+    enable_fan('lxd', config())
+    set_state('fan.configured')
+
+
+@when('fan.configured')
+def config_changed():
+    '''When the config options change, unconfigure old settings.'''
+    options = {k: config(k) for k in ['overlay', 'underlay']}
+    if data_changed('fan.config', options):
+        remove_state('fan.configured')
+
+
+def enable_fan(fan_type, options):
+    '''Configure the fan by type and with the current configuration options
+    removing the old configuration if it exists.'''
+    previous_overlay = options.previous('overlay')
+    previous_underlay = options.previous('underlay')
+    if previous_overlay and previous_underlay:
+        cmd = 'fanatic disable-{0} {1} {2}'.format(fan_type, previous_overlay,
+                                                   previous_underlay)
         print(cmd)
         check_call(split(cmd))
-
-        status_set('active', 'Fan network configured to: {}'.format(cmd))
-    set_state('fan.configured')
-    # do something with fan.configured state later.
+    overlay = options['overlay']
+    underlay = options['underlay']
+    if overlay and underlay:
+        cmd = 'fanatic enable-{0} {1} {2}'.format(fan_type, overlay, underlay)
+        print(cmd)
+        check_call(split(cmd))
